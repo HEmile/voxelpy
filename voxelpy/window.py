@@ -12,7 +12,7 @@ class Window(pyglet.window.Window):
         self.engine = engine
         # self.set_mouse_visible(False)
 
-        self.camera = np.array([5., 6., 5.])
+        self.camera = np.array([5., 20., 5.])
 
         self.at = [1., 1., 1.]
         self.up = [0., 1., 0.]
