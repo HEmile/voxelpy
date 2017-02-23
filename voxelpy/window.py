@@ -48,6 +48,7 @@ class Window(pyglet.window.Window):
         self.engine.tick(dt)
 
     def setup_3D(self):
+        pyglet.gl.glClearColor(0, 20, 200, 1)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(70, self.width / float(self.height), 0.2, 50)
