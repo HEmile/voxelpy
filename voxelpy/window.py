@@ -41,7 +41,7 @@ class Window(pyglet.window.Window):
         self.clear()
         fps.draw()
         self.setup_3D()
-        self.engine.draw()
+        self.engine.draw(0, self.camera, self.at)
 
     def update(self, dt):
         self.handle_movement(dt)

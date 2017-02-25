@@ -1,6 +1,6 @@
 import zlib
 import struct
-import numpy as np
+import voxelpy.engine.chunk as vchunk
 
 BYTES_CHUNK = 4096
 
@@ -48,22 +48,25 @@ def load_region(path):
         chunkx = lvl['xPos']
         chunkz = lvl['zPos']
         sections = lvl['Sections']
-        npchunk = np.zeros((16, 256, 16), dtype='b')
         for section in sections:
             blocks = section['Blocks']
             chunky = section['Y']
+            vpchunk = vchunk.empty_chunk(chunkx, chunky, chunkz)
             for y in range(16):
                 for z in range(16):
                     for x in range(16):
                         blockpos = 256 * y + 16 * z + x
                         blockId = blocks[blockpos]
-                        npchunk[x][y + 16 * chunky][z] = blockId
-            npchunks[(chunkx, chunkz)] = npchunk
+                        if blockId < 0:
+                            blockId += 256
+                        vpchunk[x, y, z] = [blockId]
+            npchunks[(chunkx, chunky, chunkz)] = vpchunk
     return npchunks
 
 
 def parse_NBT(bytes):
     return parse_NBT_tag(bytes[3:])[0]
+
 
 # Returns a dictionary and index offset
 def parse_NBT_tag(bytes):
