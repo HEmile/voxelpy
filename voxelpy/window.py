@@ -51,7 +51,7 @@ class Window(pyglet.window.Window):
         pyglet.gl.glClearColor(0, 20, 200, 1)
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        gluPerspective(70, self.width / float(self.height), 0.2, 50)
+        gluPerspective(70, self.width / float(self.height), 0.2, 80)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -71,8 +71,8 @@ class Window(pyglet.window.Window):
         glFogi(GL_FOG_MODE, GL_LINEAR)
         # How close and far away fog starts and ends. The closer the start and end,
         # the denser the fog in the fog range.
-        glFogf(GL_FOG_START, 20.0)
-        glFogf(GL_FOG_END, 60.0)
+        glFogf(GL_FOG_START, 40.0)
+        glFogf(GL_FOG_END, 90.0)
 
     def setup_2D(self):
         width, height = self.get_size()

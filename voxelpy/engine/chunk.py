@@ -1,6 +1,7 @@
 import numpy as np
 import voxelpy.engine.chunk_render as render
 from pyglet.gl import *
+import time
 
 class Chunk:
     def __init__(self, chunkX, chunkY, chunkZ, chunk_size=16, contents=None):
@@ -28,7 +29,7 @@ class Chunk:
 
     def build_mesh(self):
         self._vertex_list = pyglet.graphics.vertex_list(len(self.vertex_list_bf) // 3,
-                                              ('v3f', self.vertex_list_bf), ('c3B', self.colors))
+                             ('v3f', self.vertex_list_bf), ('c3B', self.colors))
         del self.vertex_list_bf
         del self.colors
 
@@ -73,7 +74,7 @@ def empty_chunk(chunkX, chunkY, chunkZ, chunk_size=16):
 
 
 class ChunkManager:
-    def __init__(self, chunks, rebuild_per_frame=1, render_dist=3):
+    def __init__(self, chunks, rebuild_per_frame=1, render_dist=4):
         self.chunks = chunks
         self.rebuild_per_frame = rebuild_per_frame
         self.render_dist = render_dist
@@ -83,28 +84,36 @@ class ChunkManager:
         self.visibility = []
         self.build = []
         self.needs_update = True
+        self.cmr = np.array([-1, -1, -1])
+        self.lock = False
 
     def draw(self, dt, camera, at):
-        for chunk in self.build:
+        if len(self.build) > 0:
+            chunk = self.build.pop()
             chunk.build_mesh()
-        self.build = []
         self._render()
 
     def update(self, dt, camera, at):
-        self.needs_update = False
+        if self.lock:
+            return
+        self.lock = True
+        if not (camera == self.cmr).all():
+            self.cmr = np.array([camera[0], camera[1], camera[2]])
+            self._update_visibility(camera)
+            self.needs_update = True
         self._update_rebuild()
-        self._update_visibility(camera)
-        self.needs_update = True
+        self.lock = False
 
     def _update_rebuild(self):
         count = 0
-        for chunk in self.rebuild:
+        while len(self.rebuild) > 0:
             if count >= self.rebuild_per_frame:
                 break
+            chunk = self.rebuild.pop(0)
             chunk.set_mesh(*render.build_chunk(chunk))
             chunk.update_render_flags()
             self.build.append(chunk)
-        self.rebuild = []
+            count += 1
 
     def _update_visibility(self, camera):
         camera_chx = int(camera[0]) >> 4
@@ -112,6 +121,7 @@ class ChunkManager:
         camera_chz = int(camera[2]) >> 4
         radius_sq = self.render_dist * self.render_dist
         visibility = []
+        self.rebuild = []
 
         for chx in range(camera_chx - self.render_dist, camera_chx + self.render_dist):
             for chy in range(camera_chy - self.render_dist, camera_chy + self.render_dist):
@@ -129,7 +139,6 @@ class ChunkManager:
         self.visibility = visibility
 
     def _render(self):
-        self.render = []
         for chunk in self.visibility:
             if chunk.should_render():
                 chunk.draw()
