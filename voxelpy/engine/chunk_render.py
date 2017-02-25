@@ -1,7 +1,7 @@
 import voxelpy.mc.colors as clrs
 import pyglet
 
-colors = clrs.create_colors()
+mcolors = clrs.create_colors()
 
 _vertices = (
     (0, 0, 1),  # vertex 0
@@ -54,28 +54,44 @@ def build_chunk(chunk):
                 voxel_type = chunk[x, y, z]
                 if voxel_type > 0:
                     nz = z + offsetz
-                    if voxel_type < len(colors) + 1:
-                        color = colors[voxel_type - 1]
-                        if color == (256, 256, 256) or color == (0, 0, 0) or color == (255, 255, 255):
-                            print(voxel_type)
-                            print(color)
-                        colors += [color[0], color[1], color[2]] * 24
+
+                    rendertop = True if z == 15 else chunk[x, y, z + 1] == 0
+                    renderbottom = True if z == 0 else chunk[x, y, z - 1] == 0
+                    renderleft = True if x == 15 else chunk[x + 1, y, z] == 0
+                    renderright = True if x == 0 else chunk[x - 1, y, z] == 0
+                    renderdown = True if y == 15 else chunk[x, y + 1, z] == 0
+                    renderup = True if y == 0 else chunk[x, y - 1, z] == 0
+                    render = [rendertop, renderbottom, renderleft, renderright, renderdown, renderup]
+
+                    renderamt = sum(render)
+
+                    if voxel_type < len(mcolors) + 1:
+                        color = mcolors[voxel_type - 1]
+                        # if color == (256, 256, 256) or color == (255, 255, 255):
+                        #     print(voxel_type)
+                        #     print(color)
+                        colors += [color[0], color[1], color[2]] * 4 * renderamt
                     else:
-                        colors += [0, 256, 0] * 24
+                        colors += [0, 256, 0] * 4 * renderamt
 
                     acc = 0
-                    for indice in vertices:
-                        if acc == 0:
-                            indice += nx
-                            acc += 1
-                        elif acc == 1:
-                            indice += ny
-                            acc += 1
-                        elif acc == 2:
-                            indice += nz
+                    fc_i = 0
+                    ind = 0
+
+                    for i in range(len(render)):
+                        if render[i]:
                             acc = 0
-                        vertex_list_bf.append(indice)
+                            for j in range(i*12, i*12 + 12):
+                                indice = vertices[j]
+                                if acc == 0:
+                                    indice += nx
+                                    acc += 1
+                                elif acc == 1:
+                                    indice += ny
+                                    acc += 1
+                                elif acc == 2:
+                                    indice += nz
+                                    acc = 0
+                                vertex_list_bf.append(indice)
                     count += 1
-    return pyglet.graphics.vertex_list(len(vertex_list_bf) // 3,
-                                              ('v3f', vertex_list_bf), ('c3B', colors),
-                                              ('n3f', normals * count))
+    return vertex_list_bf, colors

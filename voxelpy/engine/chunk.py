@@ -19,11 +19,18 @@ class Chunk:
         self._vertex_list = None
 
     def should_render(self):
-        return self.has_blocks
+        return self.has_blocks and not self.needs_rebuild
 
-    def set_mesh(self, vertex_list):
-        self._vertex_list = vertex_list
+    def set_mesh(self, vertex_list_bf, colors):
+        self.vertex_list_bf = vertex_list_bf
+        self.colors = colors
         self.needs_rebuild = False
+
+    def build_mesh(self):
+        self._vertex_list = pyglet.graphics.vertex_list(len(self.vertex_list_bf) // 3,
+                                              ('v3f', self.vertex_list_bf), ('c3B', self.colors))
+        del self.vertex_list_bf
+        del self.colors
 
     def update_render_flags(self):
         for id in self:
@@ -66,7 +73,7 @@ def empty_chunk(chunkX, chunkY, chunkZ, chunk_size=16):
 
 
 class ChunkManager:
-    def __init__(self, chunks, rebuild_per_frame=8, render_dist=5):
+    def __init__(self, chunks, rebuild_per_frame=1, render_dist=3):
         self.chunks = chunks
         self.rebuild_per_frame = rebuild_per_frame
         self.render_dist = render_dist
@@ -74,19 +81,29 @@ class ChunkManager:
         self.update_flags = []
         self.render = []
         self.visibility = []
+        self.build = []
+        self.needs_update = True
 
     def draw(self, dt, camera, at):
+        for chunk in self.build:
+            chunk.build_mesh()
+        self.build = []
+        self._render()
+
+    def update(self, dt, camera, at):
+        self.needs_update = False
         self._update_rebuild()
         self._update_visibility(camera)
-        self._render()
+        self.needs_update = True
 
     def _update_rebuild(self):
         count = 0
         for chunk in self.rebuild:
             if count >= self.rebuild_per_frame:
                 break
-            chunk.set_mesh(render.build_chunk(chunk))
+            chunk.set_mesh(*render.build_chunk(chunk))
             chunk.update_render_flags()
+            self.build.append(chunk)
         self.rebuild = []
 
     def _update_visibility(self, camera):
@@ -94,21 +111,22 @@ class ChunkManager:
         camera_chy = int(camera[1]) >> 4
         camera_chz = int(camera[2]) >> 4
         radius_sq = self.render_dist * self.render_dist
-        self.visibility = []
+        visibility = []
 
         for chx in range(camera_chx - self.render_dist, camera_chx + self.render_dist):
             for chy in range(camera_chy - self.render_dist, camera_chy + self.render_dist):
                 for chz in range(camera_chz - self.render_dist, camera_chz + self.render_dist):
-                    dx = chx - self.render_dist
-                    dy = chy - self.render_dist
-                    dz = chz - self.render_dist
+                    dx = chx - camera_chx
+                    dy = chy - camera_chy
+                    dz = chz - camera_chz
                     dist_sq = dx*dx + dy*dy + dz*dz
                     if dist_sq < radius_sq:
                         chunk = self.chunks.get((chx, chy, chz), None)
                         if chunk and chunk.should_render:
-                            self.visibility.append(chunk)
+                            visibility.append(chunk)
                             if chunk.needs_rebuild:
                                 self.rebuild.append(chunk)
+        self.visibility = visibility
 
     def _render(self):
         self.render = []

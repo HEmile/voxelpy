@@ -59,7 +59,7 @@ def load_region(path):
                         blockId = blocks[blockpos]
                         if blockId < 0:
                             blockId += 256
-                        vpchunk[x, y, z] = [blockId]
+                        vpchunk[x, y, z] = blockId
             npchunks[(chunkx, chunky, chunkz)] = vpchunk
     return npchunks
 
