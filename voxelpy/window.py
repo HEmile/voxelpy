@@ -1,6 +1,5 @@
 import pyglet
 from pyglet.gl import *
-import pymouse
 import math
 import numpy as np
 from pyglet.window import key
@@ -10,7 +9,6 @@ class Window(pyglet.window.Window):
     def __init__(self, engine):
         super(Window, self).__init__(resizable=True, caption='voxelpy', width=1800, height=1000)
         self.engine = engine
-        # self.set_mouse_visible(False)
 
         self.camera = np.array([15., 80., 15.])
 
@@ -19,8 +17,6 @@ class Window(pyglet.window.Window):
 
         self.horizontal_angle = 1
         self.vertical_angle = 1
-        self.mouse = pymouse.PyMouse()
-        self.regMouseMove = True
 
         self.dt = 0
         self.keys = key.KeyStateHandler()
@@ -36,10 +32,13 @@ class Window(pyglet.window.Window):
         pyglet.clock.schedule_interval(self.update, 1.0/128.0)
         pyglet.clock.set_fps_limit(128)
 
+        super(Window, self).set_exclusive_mouse(True)
+
     def on_draw(self):
         pyglet.clock.tick()
         self.clear()
         self.setup_3D()
+        self.setup_fog()
         self.engine.draw(0, self.camera, self.at)
         self.setup_2D()
         fps.draw()
@@ -58,9 +57,24 @@ class Window(pyglet.window.Window):
         glLoadIdentity()
         gluLookAt(self.camera[0], self.camera[1], self.camera[2], self.at[0], self.at[1], self.at[2], self.up[0], self.up[1], self.up[2])
 
-    def setup_2D(self):
-        """ Configure OpenGL to draw in 2d.
+    def setup_fog(self):
+        """ Configure the OpenGL fog properties.
         """
+        # Enable fog. Fog "blends a fog color with each rasterized pixel fragment's
+        # post-texturing color."
+        glEnable(GL_FOG)
+        # Set the fog color.
+        glFogfv(GL_FOG_COLOR, (GLfloat * 4)(0.5, 0.69, 1.0, 1))
+        # Say we have no preference between rendering speed and quality.
+        glHint(GL_FOG_HINT, GL_DONT_CARE)
+        # Specify the equation used to compute the blending factor.
+        glFogi(GL_FOG_MODE, GL_LINEAR)
+        # How close and far away fog starts and ends. The closer the start and end,
+        # the denser the fog in the fog range.
+        glFogf(GL_FOG_START, 20.0)
+        glFogf(GL_FOG_END, 60.0)
+
+    def setup_2D(self):
         width, height = self.get_size()
         glDisable(GL_DEPTH_TEST)
         glViewport(0, 0, width, height)
@@ -71,15 +85,9 @@ class Window(pyglet.window.Window):
         glLoadIdentity()
 
     def on_mouse_motion(self, x, y, dx, dy):
-        if self.regMouseMove:
-            self.horizontal_angle -= self.x_mouse_calibration * dx
-            self.vertical_angle += self.y_mouse_calibration * dy
-            self.calculate_at()
-            wx, wy = self.get_location()
-            self.mouse.move(int(wx + self.width / 2), int(wy + self.height / 2))
-            self.regMouseMove = False
-        else:
-            self.regMouseMove = True
+        self.horizontal_angle -= self.x_mouse_calibration * dx
+        self.vertical_angle += self.y_mouse_calibration * dy
+        self.calculate_at()
 
     def handle_movement(self, dt):
         direction = self.at - self.camera
