@@ -21,25 +21,12 @@ _indices = (
     3, 2, 7, 6,  # down face
     5, 4, 1, 0   # up face
 )
-vertices = []
-for index in _indices:
-    vertices += _vertices[index]
-_normals = (
-     (0, 0, 1),
-     (0, 0, -1),
-     (1, 0, 0),
-     (-1, 0, 0),
-     (0, 1, 0),
-     (0, -1, 0)
-)
-normals = []
-for i in range(6):
-    normals += _normals[i] * 4
 
 
 def build_chunk(chunk):
-    vertex_list_bf = []
+    vertices = []
     colors = []
+    indices = []
     offsetx = chunk.chunkX << 4
     offsety = chunk.chunkY << 4
     offsetz = chunk.chunkZ << 4
@@ -64,34 +51,23 @@ def build_chunk(chunk):
                     render = [rendertop, renderbottom, renderleft, renderright, renderdown, renderup]
 
                     renderamt = sum(render)
+                    if renderamt == 0:
+                        continue
+                    for vertex in _vertices:
+                        vertices += [vertex[0] + nx, vertex[1] + ny, vertex[2] + nz]
 
                     if voxel_type < len(mcolors) + 1:
                         color = mcolors[voxel_type - 1]
                         # if color == (256, 256, 256) or color == (255, 255, 255):
                         #     print(voxel_type)
                         #     print(color)
-                        colors += [color[0], color[1], color[2]] * 4 * renderamt
+                        colors += [color[0], color[1], color[2]] * 8
                     else:
-                        colors += [0, 256, 0] * 4 * renderamt
-
-                    acc = 0
-                    fc_i = 0
-                    ind = 0
+                        colors += [0, 256, 0] * 8
 
                     for i in range(len(render)):
                         if render[i]:
-                            acc = 0
-                            for j in range(i*12, i*12 + 12):
-                                indice = vertices[j]
-                                if acc == 0:
-                                    indice += nx
-                                    acc += 1
-                                elif acc == 1:
-                                    indice += ny
-                                    acc += 1
-                                elif acc == 2:
-                                    indice += nz
-                                    acc = 0
-                                vertex_list_bf.append(indice)
+                            for j in range(i*4, i*4 + 4):
+                                indices.append(_indices[j] + count * 8)
                     count += 1
-    return vertex_list_bf, colors
+    return vertices, colors, indices

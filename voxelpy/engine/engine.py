@@ -12,8 +12,6 @@ class VoxelEngine:
         glEnable(GL_DEPTH_TEST)
         self.chunkmanager.draw(dt, camera, at)
         self.chunkmanager.update(dt, camera, at)
-        # thread = Thread(target=self.chunkmanager.update, args=(dt, camera, at))
-        # thread.start()
 
     def tick(self, dt):
         self.world.tick(dt)

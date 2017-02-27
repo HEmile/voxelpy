@@ -22,13 +22,14 @@ class Chunk:
     def should_render(self):
         return self.has_blocks and not self.needs_rebuild
 
-    def set_mesh(self, vertex_list_bf, colors):
+    def set_mesh(self, vertex_list_bf, colors, indices):
         self.vertex_list_bf = vertex_list_bf
         self.colors = colors
+        self.indices = indices
         self.needs_rebuild = False
 
     def build_mesh(self):
-        self._vertex_list = pyglet.graphics.vertex_list(len(self.vertex_list_bf) // 3,
+        self._vertex_list = pyglet.graphics.vertex_list_indexed(len(self.vertex_list_bf) // 3, self.indices,
                              ('v3f', self.vertex_list_bf), ('c3B', self.colors))
         del self.vertex_list_bf
         del self.colors
